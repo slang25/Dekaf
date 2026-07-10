@@ -213,9 +213,9 @@ public sealed class ProducerOptions
     /// When set, the producer uses the pool returned by this factory instead of creating
     /// a TCP-based <see cref="Networking.ConnectionPool"/>. The producer owns the returned
     /// pool and disposes it when the producer is disposed.
-    /// Intended for testing (e.g. in-memory transports); most applications should leave this null.
+    /// Internal testing seam used by Dekaf.Testing (see InMemoryKafkaCluster).
     /// </summary>
-    public Func<Networking.IConnectionPool>? ConnectionPoolFactory { get; init; }
+    internal Func<Networking.IConnectionPool>? ConnectionPoolFactory { get; init; }
 }
 
 /// <summary>

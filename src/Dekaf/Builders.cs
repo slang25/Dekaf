@@ -284,10 +284,10 @@ public sealed class ProducerBuilder<TKey, TValue>
     /// <summary>
     /// Uses a custom connection pool instead of TCP connections to brokers.
     /// The producer owns the pool returned by the factory and disposes it with the producer.
-    /// Intended for testing (e.g. in-memory transports).
+    /// Internal testing seam used by Dekaf.Testing (see InMemoryKafkaCluster).
     /// </summary>
     /// <param name="connectionPoolFactory">Factory that creates the connection pool.</param>
-    public ProducerBuilder<TKey, TValue> WithConnectionPoolFactory(Func<Networking.IConnectionPool> connectionPoolFactory)
+    internal ProducerBuilder<TKey, TValue> WithConnectionPoolFactory(Func<Networking.IConnectionPool> connectionPoolFactory)
     {
         _connectionPoolFactory = connectionPoolFactory ?? throw new ArgumentNullException(nameof(connectionPoolFactory));
         return this;
@@ -750,10 +750,10 @@ public sealed class ConsumerBuilder<TKey, TValue>
     /// <summary>
     /// Uses a custom connection pool instead of TCP connections to brokers.
     /// The consumer owns the pool returned by the factory and disposes it with the consumer.
-    /// Intended for testing (e.g. in-memory transports).
+    /// Internal testing seam used by Dekaf.Testing (see InMemoryKafkaCluster).
     /// </summary>
     /// <param name="connectionPoolFactory">Factory that creates the connection pool.</param>
-    public ConsumerBuilder<TKey, TValue> WithConnectionPoolFactory(Func<Networking.IConnectionPool> connectionPoolFactory)
+    internal ConsumerBuilder<TKey, TValue> WithConnectionPoolFactory(Func<Networking.IConnectionPool> connectionPoolFactory)
     {
         _connectionPoolFactory = connectionPoolFactory ?? throw new ArgumentNullException(nameof(connectionPoolFactory));
         return this;

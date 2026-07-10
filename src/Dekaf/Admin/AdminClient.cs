@@ -1215,9 +1215,9 @@ public sealed class AdminClientOptions
     /// When set, the admin client uses the pool returned by this factory instead of creating
     /// a TCP-based <see cref="ConnectionPool"/>. The admin client owns the returned
     /// pool and disposes it when the admin client is disposed.
-    /// Intended for testing (e.g. in-memory transports); most applications should leave this null.
+    /// Internal testing seam used by Dekaf.Testing (see InMemoryKafkaCluster).
     /// </summary>
-    public Func<IConnectionPool>? ConnectionPoolFactory { get; init; }
+    internal Func<IConnectionPool>? ConnectionPoolFactory { get; init; }
 }
 
 /// <summary>
@@ -1286,10 +1286,10 @@ public sealed class AdminClientBuilder
     /// <summary>
     /// Uses a custom connection pool instead of TCP connections to brokers.
     /// The admin client owns the pool returned by the factory and disposes it with the admin client.
-    /// Intended for testing (e.g. in-memory transports).
+    /// Internal testing seam used by Dekaf.Testing (see InMemoryKafkaCluster).
     /// </summary>
     /// <param name="connectionPoolFactory">Factory that creates the connection pool.</param>
-    public AdminClientBuilder WithConnectionPoolFactory(Func<IConnectionPool> connectionPoolFactory)
+    internal AdminClientBuilder WithConnectionPoolFactory(Func<IConnectionPool> connectionPoolFactory)
     {
         _connectionPoolFactory = connectionPoolFactory ?? throw new ArgumentNullException(nameof(connectionPoolFactory));
         return this;
