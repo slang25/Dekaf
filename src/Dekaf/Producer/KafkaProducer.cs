@@ -121,7 +121,7 @@ public sealed class KafkaProducer<TKey, TValue> : IKafkaProducer<TKey, TValue>
             _ => new DefaultPartitioner()
         };
 
-        _connectionPool = new ConnectionPool(
+        _connectionPool = options.ConnectionPoolFactory?.Invoke() ?? new ConnectionPool(
             options.ClientId,
             new ConnectionOptions
             {

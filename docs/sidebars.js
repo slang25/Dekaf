@@ -56,6 +56,7 @@ const sidebars = {
       ],
     },
     'compression',
+    'testing',
     'dependency-injection',
     'performance',
     'benchmarks',

@@ -207,6 +207,15 @@ public sealed class ProducerOptions
     /// Default is 64, balancing memory usage and resize frequency.
     /// </summary>
     public int InitialBatchRecordCapacity { get; init; } = 64;
+
+    /// <summary>
+    /// Factory for the connection pool used to communicate with brokers.
+    /// When set, the producer uses the pool returned by this factory instead of creating
+    /// a TCP-based <see cref="Networking.ConnectionPool"/>. The producer owns the returned
+    /// pool and disposes it when the producer is disposed.
+    /// Intended for testing (e.g. in-memory transports); most applications should leave this null.
+    /// </summary>
+    public Func<Networking.IConnectionPool>? ConnectionPoolFactory { get; init; }
 }
 
 /// <summary>

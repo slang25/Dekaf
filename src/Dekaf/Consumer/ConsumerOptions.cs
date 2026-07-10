@@ -219,6 +219,15 @@ public sealed class ConsumerOptions
     /// Handler for statistics events. Called periodically based on StatisticsInterval.
     /// </summary>
     public Action<Statistics.ConsumerStatistics>? StatisticsHandler { get; init; }
+
+    /// <summary>
+    /// Factory for the connection pool used to communicate with brokers.
+    /// When set, the consumer uses the pool returned by this factory instead of creating
+    /// a TCP-based <see cref="Networking.ConnectionPool"/>. The consumer owns the returned
+    /// pool and disposes it when the consumer is disposed.
+    /// Intended for testing (e.g. in-memory transports); most applications should leave this null.
+    /// </summary>
+    public Func<Networking.IConnectionPool>? ConnectionPoolFactory { get; init; }
 }
 
 /// <summary>

@@ -26,7 +26,7 @@ public sealed class AdminClient : IAdminClient
         _options = options;
         _logger = loggerFactory?.CreateLogger<AdminClient>();
 
-        _connectionPool = new ConnectionPool(
+        _connectionPool = options.ConnectionPoolFactory?.Invoke() ?? new ConnectionPool(
             options.ClientId,
             new ConnectionOptions
             {
@@ -1209,6 +1209,15 @@ public sealed class AdminClientOptions
     public SaslMechanism SaslMechanism { get; init; } = SaslMechanism.None;
     public string? SaslUsername { get; init; }
     public string? SaslPassword { get; init; }
+
+    /// <summary>
+    /// Factory for the connection pool used to communicate with brokers.
+    /// When set, the admin client uses the pool returned by this factory instead of creating
+    /// a TCP-based <see cref="ConnectionPool"/>. The admin client owns the returned
+    /// pool and disposes it when the admin client is disposed.
+    /// Intended for testing (e.g. in-memory transports); most applications should leave this null.
+    /// </summary>
+    public Func<IConnectionPool>? ConnectionPoolFactory { get; init; }
 }
 
 /// <summary>
@@ -1223,6 +1232,7 @@ public sealed class AdminClientBuilder
     private string? _saslUsername;
     private string? _saslPassword;
     private Microsoft.Extensions.Logging.ILoggerFactory? _loggerFactory;
+    private Func<IConnectionPool>? _connectionPoolFactory;
 
     public AdminClientBuilder WithBootstrapServers(string servers)
     {
@@ -1273,6 +1283,18 @@ public sealed class AdminClientBuilder
         return this;
     }
 
+    /// <summary>
+    /// Uses a custom connection pool instead of TCP connections to brokers.
+    /// The admin client owns the pool returned by the factory and disposes it with the admin client.
+    /// Intended for testing (e.g. in-memory transports).
+    /// </summary>
+    /// <param name="connectionPoolFactory">Factory that creates the connection pool.</param>
+    public AdminClientBuilder WithConnectionPoolFactory(Func<IConnectionPool> connectionPoolFactory)
+    {
+        _connectionPoolFactory = connectionPoolFactory ?? throw new ArgumentNullException(nameof(connectionPoolFactory));
+        return this;
+    }
+
     public IAdminClient Build()
     {
         if (_bootstrapServers.Count == 0)
@@ -1285,7 +1307,8 @@ public sealed class AdminClientBuilder
             UseTls = _useTls,
             SaslMechanism = _saslMechanism,
             SaslUsername = _saslUsername,
-            SaslPassword = _saslPassword
+            SaslPassword = _saslPassword,
+            ConnectionPoolFactory = _connectionPoolFactory
         };
 
         return new AdminClient(options, _loggerFactory);

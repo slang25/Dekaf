@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>Dekaf.Testing</PackageId>
+    <Description>In-memory Kafka cluster for testing Dekaf producers and consumers without a broker</Description>
+    <PackageTags>kafka;testing;mock;in-memory</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Dekaf\Dekaf.csproj" />
+  </ItemGroup>
+
+</Project>

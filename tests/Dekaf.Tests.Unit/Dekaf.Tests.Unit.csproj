@@ -7,6 +7,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Dekaf\Dekaf.csproj" />
+    <ProjectReference Include="..\..\src\Dekaf.Testing\Dekaf.Testing.csproj" />
     <ProjectReference Include="..\..\src\Dekaf.Compression.Snappy\Dekaf.Compression.Snappy.csproj" />
     <ProjectReference Include="..\..\src\Dekaf.SchemaRegistry\Dekaf.SchemaRegistry.csproj" />
     <ProjectReference Include="..\..\src\Dekaf.SchemaRegistry.Protobuf\Dekaf.SchemaRegistry.Protobuf.csproj" />
@@ -16,10 +17,10 @@
 
   <ItemGroup>
     <PackageReference Include="Google.Protobuf" Version="3.*" />
-    <PackageReference Include="Microsoft.Testing.Extensions.HangDump" Version="*" />
+    <PackageReference Include="Microsoft.Testing.Extensions.HangDump" Version="2.0.2" />
     <PackageReference Include="NSubstitute" Version="5.*" />
     <PackageReference Include="TUnit" Version="1.12.111" />
-    <PackageReference Include="Verify.TUnit" Version="*" />
+    <PackageReference Include="Verify.TUnit" Version="31.10.0" />
   </ItemGroup>
 
 </Project>

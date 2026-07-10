@@ -37,6 +37,7 @@ public sealed class ProducerBuilder<TKey, TValue>
     private TimeSpan? _statisticsInterval;
     private Action<Statistics.ProducerStatistics>? _statisticsHandler;
     private ulong? _bufferMemory;
+    private Func<Networking.IConnectionPool>? _connectionPoolFactory;
 
     public ProducerBuilder<TKey, TValue> WithBootstrapServers(string servers)
     {
@@ -281,6 +282,18 @@ public sealed class ProducerBuilder<TKey, TValue>
     }
 
     /// <summary>
+    /// Uses a custom connection pool instead of TCP connections to brokers.
+    /// The producer owns the pool returned by the factory and disposes it with the producer.
+    /// Intended for testing (e.g. in-memory transports).
+    /// </summary>
+    /// <param name="connectionPoolFactory">Factory that creates the connection pool.</param>
+    public ProducerBuilder<TKey, TValue> WithConnectionPoolFactory(Func<Networking.IConnectionPool> connectionPoolFactory)
+    {
+        _connectionPoolFactory = connectionPoolFactory ?? throw new ArgumentNullException(nameof(connectionPoolFactory));
+        return this;
+    }
+
+    /// <summary>
     /// Sets the interval for emitting statistics events.
     /// </summary>
     /// <param name="interval">The interval between statistics events. Must be positive.</param>
@@ -403,7 +416,8 @@ public sealed class ProducerBuilder<TKey, TValue>
             OAuthBearerConfig = _oauthConfig,
             OAuthBearerTokenProvider = _oauthTokenProvider,
             StatisticsInterval = _statisticsInterval,
-            StatisticsHandler = _statisticsHandler
+            StatisticsHandler = _statisticsHandler,
+            ConnectionPoolFactory = _connectionPoolFactory
         };
 
         return new KafkaProducer<TKey, TValue>(options, keySerializer, valueSerializer, _loggerFactory);
@@ -479,6 +493,7 @@ public sealed class ConsumerBuilder<TKey, TValue>
     private bool _enablePartitionEof;
     private TimeSpan? _statisticsInterval;
     private Action<Statistics.ConsumerStatistics>? _statisticsHandler;
+    private Func<Networking.IConnectionPool>? _connectionPoolFactory;
     private readonly List<string> _topicsToSubscribe = [];
 
     public ConsumerBuilder<TKey, TValue> WithBootstrapServers(string servers)
@@ -733,6 +748,18 @@ public sealed class ConsumerBuilder<TKey, TValue>
     }
 
     /// <summary>
+    /// Uses a custom connection pool instead of TCP connections to brokers.
+    /// The consumer owns the pool returned by the factory and disposes it with the consumer.
+    /// Intended for testing (e.g. in-memory transports).
+    /// </summary>
+    /// <param name="connectionPoolFactory">Factory that creates the connection pool.</param>
+    public ConsumerBuilder<TKey, TValue> WithConnectionPoolFactory(Func<Networking.IConnectionPool> connectionPoolFactory)
+    {
+        _connectionPoolFactory = connectionPoolFactory ?? throw new ArgumentNullException(nameof(connectionPoolFactory));
+        return this;
+    }
+
+    /// <summary>
     /// Enables partition end-of-file (EOF) events.
     /// When enabled, the consumer will emit a special ConsumeResult with IsPartitionEof=true
     /// when it reaches the end of a partition (caught up to the high watermark).
@@ -849,7 +876,8 @@ public sealed class ConsumerBuilder<TKey, TValue>
             RebalanceListener = _rebalanceListener,
             EnablePartitionEof = _enablePartitionEof,
             StatisticsInterval = _statisticsInterval,
-            StatisticsHandler = _statisticsHandler
+            StatisticsHandler = _statisticsHandler,
+            ConnectionPoolFactory = _connectionPoolFactory
         };
 
         var consumer = new KafkaConsumer<TKey, TValue>(options, keyDeserializer, valueDeserializer, _loggerFactory);

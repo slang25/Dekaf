@@ -265,6 +265,35 @@ var producer = Kafka.CreateProducer<string, Order>()
 await producer.ProduceAsync("orders", order.Id, order);
 ```
 
+## Testing
+
+Test code that uses Dekaf without Docker or a running broker. `Dekaf.Testing` provides an
+in-memory cluster that plugs in at the typed protocol layer — no ports, no I/O, while
+batching, consumer groups, and rebalancing all use the real client code paths:
+
+```bash
+dotnet add package Dekaf.Testing
+```
+
+```csharp
+using Dekaf;
+using Dekaf.Testing;
+
+var cluster = new InMemoryKafkaCluster();
+
+await using var producer = Kafka.CreateProducer<string, string>()
+    .UseInMemoryCluster(cluster)
+    .Build();
+
+await producer.ProduceAsync("orders", "order-1", "created");
+
+// Assert directly on cluster state, or consume with a real consumer
+var records = cluster.GetRecords("orders");
+```
+
+Inject faults DelegatingHandler-style with `cluster.RequestInterceptor` to test retry and
+error-handling paths that are impossible to trigger with a real broker.
+
 ## Security
 
 ### TLS

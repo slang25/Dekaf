@@ -242,7 +242,7 @@ public sealed class KafkaConsumer<TKey, TValue> : IKafkaConsumer<TKey, TValue>
         _valueDeserializer = valueDeserializer;
         _logger = loggerFactory?.CreateLogger<KafkaConsumer<TKey, TValue>>();
 
-        _connectionPool = new ConnectionPool(
+        _connectionPool = options.ConnectionPoolFactory?.Invoke() ?? new ConnectionPool(
             options.ClientId,
             new ConnectionOptions
             {
@@ -2279,9 +2279,9 @@ public sealed class KafkaConsumer<TKey, TValue> : IKafkaConsumer<TKey, TValue>
         if (_disposed)
             return;
 
-        _disposed = true;
-
-        // If not already closed, perform graceful close first (but with a short timeout)
+        // If not already closed, perform graceful close first (but with a short timeout).
+        // _disposed must not be set until after the close attempt: CloseAsync is a no-op
+        // once _disposed is true, which would skip the final commit and LeaveGroup.
         if (!_closed)
         {
             try
@@ -2294,6 +2294,8 @@ public sealed class KafkaConsumer<TKey, TValue> : IKafkaConsumer<TKey, TValue>
                 // Ignore errors during dispose
             }
         }
+
+        _disposed = true;
 
         _wakeupCts?.Cancel();
         _autoCommitCts?.Cancel();

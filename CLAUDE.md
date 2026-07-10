@@ -115,6 +115,7 @@ src/
     Serialization/          # ISerializer<T>/IDeserializer<T> interfaces
   Dekaf.Compression.*/      # Pluggable compression codecs (Lz4, Snappy, Zstd)
   Dekaf.Serialization.Json/ # JSON serialization
+  Dekaf.Testing/            # In-memory Kafka cluster for testing without a broker
   Dekaf.Extensions.*/       # DI and Hosting integrations
   Dekaf.SchemaRegistry/     # Confluent Schema Registry base
   Dekaf.SchemaRegistry.Avro/     # Avro serialization with Schema Registry
