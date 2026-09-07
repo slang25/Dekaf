@@ -68,16 +68,15 @@ public readonly record struct Record
             writer.WriteRawBytes(Value.Span);
         }
 
-        // Write headers
-        var headerCount = Headers?.Count ?? 0;
+        // Write headers. Index-based iteration avoids allocating an interface enumerator
+        // per record; the producer passes a struct wrapper over a pooled array here.
+        var headers = Headers;
+        var headerCount = headers?.Count ?? 0;
         writer.WriteVarInt(headerCount);
 
-        if (Headers is not null)
+        for (var i = 0; i < headerCount; i++)
         {
-            foreach (var header in Headers)
-            {
-                header.Write(ref writer);
-            }
+            headers![i].Write(ref writer);
         }
     }
 
@@ -154,15 +153,14 @@ public readonly record struct Record
             size += Value.Length;
         }
 
-        var headerCount = Headers?.Count ?? 0;
+        // Index-based iteration avoids allocating an interface enumerator per record
+        var headers = Headers;
+        var headerCount = headers?.Count ?? 0;
         size += VarIntSize(headerCount);
 
-        if (Headers is not null)
+        for (var i = 0; i < headerCount; i++)
         {
-            foreach (var header in Headers)
-            {
-                size += header.CalculateSize();
-            }
+            size += headers![i].CalculateSize();
         }
 
         return size;

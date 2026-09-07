@@ -231,6 +231,82 @@ public class RecordBatchTests
         await Assert.That(parsedBatch.Records[0].Value.ToArray()).IsEquivalentTo("value"u8.ToArray());
     }
 
+    [Test]
+    public async Task RecordBatch_RoundTrip_HeadersFromPooledArraySlice()
+    {
+        // The producer exposes headers as a struct wrapper over a pooled array that is larger
+        // than the header count. Only the portion visible through the list must be written.
+        var pooled = new RecordHeader[8];
+        pooled[0] = new RecordHeader { Key = "h1", Value = "v1"u8.ToArray() };
+        pooled[1] = new RecordHeader { Key = "h2", Value = ReadOnlyMemory<byte>.Empty, IsValueNull = true };
+        pooled[2] = new RecordHeader { Key = "stale", Value = "should-not-be-written"u8.ToArray() };
+
+        var buffer = new ArrayBufferWriter<byte>();
+        var originalBatch = new RecordBatch
+        {
+            BaseOffset = 0,
+            BaseTimestamp = 1000,
+            MaxTimestamp = 1000,
+            LastOffsetDelta = 0,
+            Records =
+            [
+                new Record
+                {
+                    Key = "key"u8.ToArray(),
+                    Value = "value"u8.ToArray(),
+                    Headers = new ArraySegment<RecordHeader>(pooled, 0, 2)
+                }
+            ]
+        };
+
+        originalBatch.Write(buffer);
+
+        var reader = new KafkaProtocolReader(buffer.WrittenMemory);
+        var parsedBatch = RecordBatch.Read(ref reader);
+        var headers = parsedBatch.Records[0].Headers!;
+
+        await Assert.That(headers.Count).IsEqualTo(2);
+        await Assert.That(headers[0].Key).IsEqualTo("h1");
+        await Assert.That(headers[0].Value.ToArray()).IsEquivalentTo("v1"u8.ToArray());
+        await Assert.That(headers[0].IsValueNull).IsFalse();
+        await Assert.That(headers[1].Key).IsEqualTo("h2");
+        await Assert.That(headers[1].IsValueNull).IsTrue();
+    }
+
+    [Test]
+    public async Task Record_Write_WithHeaders_DoesNotAllocate()
+    {
+        var headers = new RecordHeader[]
+        {
+            new() { Key = "h1", Value = "v1"u8.ToArray() },
+            new() { Key = "h2", Value = "v2"u8.ToArray() },
+            new() { Key = "h3", Value = "v3"u8.ToArray() }
+        };
+        var record = new Record
+        {
+            Key = "key"u8.ToArray(),
+            Value = "value"u8.ToArray(),
+            Headers = headers
+        };
+        var buffer = new ArrayBufferWriter<byte>(4096);
+
+        // Warm up so JIT and buffer growth are excluded from the measurement.
+        for (var i = 0; i < 10; i++)
+        {
+            buffer.Clear();
+            var warmWriter = new KafkaProtocolWriter(buffer);
+            record.Write(ref warmWriter);
+        }
+
+        buffer.Clear();
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        var writer = new KafkaProtocolWriter(buffer);
+        record.Write(ref writer);
+        var after = GC.GetAllocatedBytesForCurrentThread();
+
+        await Assert.That(after - before).IsEqualTo(0L);
+    }
+
     #endregion
 
     #region Attributes Tests
