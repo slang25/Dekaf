@@ -17,6 +17,8 @@ public class ProtocolBenchmarks
     private byte[] _int32Data = null!;
     private byte[] _varIntData = null!;
     private byte[] _recordBatchBytes = null!;
+    private RecordBatch _recordBatchWithHeaders = null!;
+    private RecordBatch _recordBatchNoHeaders = null!;
     private string _testString = null!;
 
     [GlobalSetup]
@@ -61,12 +63,31 @@ public class ProtocolBenchmarks
         };
         batch.Write(tempBuffer);
         _recordBatchBytes = tempBuffer.WrittenSpan.ToArray();
-    }
+        _recordBatchNoHeaders = batch;
 
-    [IterationSetup]
-    public void IterationSetup()
-    {
-        _buffer.Clear();
+        // Pre-build a batch whose records carry headers so the write benchmark
+        // measures only serialization cost, not batch construction.
+        var headers = new RecordHeader[]
+        {
+            new() { Key = "correlation-id", Value = System.Text.Encoding.UTF8.GetBytes("abc-123") },
+            new() { Key = "content-type", Value = System.Text.Encoding.UTF8.GetBytes("application/json") },
+            new() { Key = "trace-id", Value = System.Text.Encoding.UTF8.GetBytes("0123456789abcdef") }
+        };
+        _recordBatchWithHeaders = new RecordBatch
+        {
+            BaseOffset = 0,
+            BaseTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            MaxTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            LastOffsetDelta = 9,
+            Records = Enumerable.Range(0, 10).Select(i => new Record
+            {
+                TimestampDelta = i,
+                OffsetDelta = i,
+                Key = System.Text.Encoding.UTF8.GetBytes($"key-{i}"),
+                Value = System.Text.Encoding.UTF8.GetBytes($"value-{i}"),
+                Headers = headers
+            }).ToList()
+        };
     }
 
     // ===== Write Operations =====
@@ -74,6 +95,7 @@ public class ProtocolBenchmarks
     [Benchmark(Description = "Write 1000 Int32s")]
     public void WriteInt32_Thousand()
     {
+        _buffer.ResetWrittenCount();
         var writer = new KafkaProtocolWriter(_buffer);
         for (var i = 0; i < 1000; i++)
         {
@@ -84,6 +106,7 @@ public class ProtocolBenchmarks
     [Benchmark(Description = "Write 100 Strings (100 chars)")]
     public void WriteString_Hundred()
     {
+        _buffer.ResetWrittenCount();
         var writer = new KafkaProtocolWriter(_buffer);
         for (var i = 0; i < 100; i++)
         {
@@ -94,6 +117,7 @@ public class ProtocolBenchmarks
     [Benchmark(Description = "Write 100 CompactStrings")]
     public void WriteCompactString_Hundred()
     {
+        _buffer.ResetWrittenCount();
         var writer = new KafkaProtocolWriter(_buffer);
         for (var i = 0; i < 100; i++)
         {
@@ -104,6 +128,7 @@ public class ProtocolBenchmarks
     [Benchmark(Description = "Write 1000 VarInts")]
     public void WriteVarInt_Thousand()
     {
+        _buffer.ResetWrittenCount();
         var writer = new KafkaProtocolWriter(_buffer);
         for (var i = -500; i < 500; i++)
         {
@@ -142,6 +167,7 @@ public class ProtocolBenchmarks
     [Benchmark(Description = "Write RecordBatch (10 records)")]
     public void WriteRecordBatch()
     {
+        _buffer.ResetWrittenCount();
         var batch = new RecordBatch
         {
             BaseOffset = 0,
@@ -158,6 +184,20 @@ public class ProtocolBenchmarks
         };
 
         batch.Write(_buffer);
+    }
+
+    [Benchmark(Description = "Write RecordBatch (10 records, 3 headers each, pre-built)")]
+    public void WriteRecordBatchWithHeaders()
+    {
+        _buffer.ResetWrittenCount();
+        _recordBatchWithHeaders.Write(_buffer);
+    }
+
+    [Benchmark(Description = "Write RecordBatch (10 records, no headers, pre-built)")]
+    public void WriteRecordBatchPreBuilt()
+    {
+        _buffer.ResetWrittenCount();
+        _recordBatchNoHeaders.Write(_buffer);
     }
 
     [Benchmark(Description = "Read RecordBatch (10 records)")]
