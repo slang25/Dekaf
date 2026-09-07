@@ -69,10 +69,18 @@ public sealed class StickyPartitioner : IPartitioner
     {
         // Use AddOrUpdate for thread-safe update that doesn't race with concurrent TryGetValue.
         // Use uint to avoid overflow to negative values.
+        // Pass (this, partitionCount) as factory state so the lambdas are static and do not allocate a closure.
         _stickyPartitions.AddOrUpdate(
             topic,
-            _ => (int)(Interlocked.Increment(ref _counter) % (uint)partitionCount),
-            (_, _) => (int)(Interlocked.Increment(ref _counter) % (uint)partitionCount));
+            static (_, state) => state.Self.NextPartition(state.PartitionCount),
+            static (_, _, state) => state.Self.NextPartition(state.PartitionCount),
+            (Self: this, PartitionCount: partitionCount));
+    }
+
+    private int NextPartition(int partitionCount)
+    {
+        // Use uint to avoid overflow to negative values.
+        return (int)(Interlocked.Increment(ref _counter) % (uint)partitionCount);
     }
 }
 

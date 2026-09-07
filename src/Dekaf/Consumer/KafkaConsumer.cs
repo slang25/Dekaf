@@ -883,11 +883,13 @@ public sealed class KafkaConsumer<TKey, TValue> : IKafkaConsumer<TKey, TValue>
         var lastOffset = lastBatch.BaseOffset + lastBatch.LastOffsetDelta;
         var tp = pending.TopicPartition;
 
-        // Thread-safe update using ConcurrentDictionary
+        // Thread-safe update using ConcurrentDictionary.
+        // Pass the new position as factory state so the lambdas are static and do not allocate a closure.
         _fetchPositions.AddOrUpdate(
             tp,
-            lastOffset + 1,
-            (_, currentPos) => Math.Max(currentPos, lastOffset + 1));
+            static (_, newPos) => newPos,
+            static (_, currentPos, newPos) => Math.Max(currentPos, newPos),
+            lastOffset + 1);
     }
 
     private void TrackPrefetchedBytes(PendingFetchData pending, bool release)
